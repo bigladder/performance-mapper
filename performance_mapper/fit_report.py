@@ -1,0 +1,56 @@
+"""Grid fit: how faithfully a performance map reproduces the point table it was built from."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+
+
+@dataclass(frozen=True)
+class LookupVariableFitStatistics:
+    """Read-back error statistics for one lookup variable, in its declared units.
+
+    Residuals are (grid read back by multilinear interpolation) minus (actual derived
+    value), one per in-grid performance point, in the order the points survived
+    duplicate averaging.
+    """
+
+    name: str
+    units: str
+    root_mean_squared_error: float
+    maximum_absolute_error: float
+    mean_bias_error: float
+    residuals: tuple[float, ...]
+
+
+@dataclass(frozen=True)
+class GridVariableCoverage:
+    """How far one grid axis reaches relative to the data along it, in declared units."""
+
+    name: str
+    units: str
+    axis_minimum: float
+    axis_maximum: float
+    data_minimum: float
+    data_maximum: float
+
+
+@dataclass(frozen=True)
+class FitReport:
+    """How well the regular grid reproduces the original points when read back the way a
+    consumer reads it (multilinear interpolation). With exact interpolation this measures
+    discretization error: whether the grid resolution is adequate.
+
+    Grid points are classified into extrapolation zones by rising risk: inside the data's
+    convex hull (interpolation), outside the hull but inside the bounding box
+    (gap-filling), and outside the bounding box (pure extrapolation). Indices into the
+    grid are flat row-major indices; indices into the point table refer to the original
+    input points.
+    """
+
+    r_squared: float
+    lookup_variable_statistics: tuple[LookupVariableFitStatistics, ...]
+    grid_variable_coverage: tuple[GridVariableCoverage, ...]
+    points_outside_grid: tuple[int, ...]
+    grid_points_outside_bounding_box: tuple[int, ...]
+    grid_points_outside_convex_hull: tuple[int, ...]
+    convex_hull_evaluated: bool
