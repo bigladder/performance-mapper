@@ -1,4 +1,4 @@
-[![Build and Test](https://github.com/bigladder/performance_mapper/actions/workflows/build-and-test.yaml/badge.svg)](https://github.com/bigladder/performance_mapper/actions/workflows/build-and-test.yaml)
+[![Build and Test](https://github.com/bigladder/performance-mapper/actions/workflows/build-and-test.yaml/badge.svg)](https://github.com/bigladder/performance-mapper/actions/workflows/build-and-test.yaml)
 
 # performance-mapper
 
