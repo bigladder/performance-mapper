@@ -16,3 +16,6 @@ repos:
       require_serial: true
       language: system
       types: [python]
+      # Type-check the package and its tests only; the examples import untyped plotting
+      # libraries (dash, plotly) and are runnable scripts, not shipped code.
+      exclude: ^examples/
