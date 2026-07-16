@@ -7,7 +7,7 @@ it is specific to the grid-variable/lookup-variable structure. The initial featu
 translating sparse or unstructured performance points into a regular grid. Visualization and
 other utilities come later.
 
-Domain vocabulary lives in [CONTEXT.md](CONTEXT.md).
+Domain vocabulary lives in [CONTEXT.md](../CONTEXT.md).
 
 ## Data model
 

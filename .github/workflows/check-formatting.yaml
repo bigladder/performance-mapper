@@ -18,7 +18,7 @@ jobs:
         with:
           version: 0.9.9
           args: format --check
-          src: "${{env.REPOSITORY_NAME}}"
+          src: "src"
       # - name: Run Ruff Linter
       #   uses: astral-sh/ruff-action@v3
       #   with:

@@ -1,7 +1,7 @@
 # Design — Grid-axis independence warning
 
 Status: **proposed** (not yet implemented; targeted at a future branch).
-Companion to [plan.md](plan.md); domain vocabulary in [CONTEXT.md](CONTEXT.md).
+Companion to [plan.md](plan.md); domain vocabulary in [CONTEXT.md](../CONTEXT.md).
 
 ## Summary
 

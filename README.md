@@ -9,8 +9,8 @@ what a map describes — HVAC equipment or otherwise.
 
 The core operation translates sparse or scattered performance points (a `PointTable`) into
 a `PerformanceMap` on a regular grid, using radial basis function interpolation
-(thin-plate-spline by default). See [plan.md](plan.md) for the full design and
-[CONTEXT.md](CONTEXT.md) for the domain vocabulary.
+(thin-plate-spline by default). See [docs/design/plan.md](docs/design/plan.md) for the
+full design and [docs/CONTEXT.md](docs/CONTEXT.md) for the domain vocabulary.
 
 ## Usage
 
@@ -76,5 +76,5 @@ This Python project is managed with [uv](https://docs.astral.sh/uv/#installation
 ```
 uv run pytest test    # run the test suite
 uv run ruff check .   # lint
-uv run mypy performance_mapper test
+uv run mypy src test
 ```
