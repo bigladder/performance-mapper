@@ -19,7 +19,6 @@ Markdown pages; a documentation generator (mkdocs or sphinx) has not yet been wi
 
 ## Package reference
 
-The importable package is `performance_mapper`, laid out under `src/` following the
-[src-layout recommended by the Python Packaging User Guide](https://packaging.python.org/en/latest/discussions/src-layout-vs-flat-layout/).
-Its public interface is re-exported from the package's top-level `__init__` module; see
+The importable package is `performance_mapper`, in the `performance_mapper/` directory at
+the repository root. Its public interface is re-exported from the package's top-level `__init__` module; see
 that module's `__all__` for the complete list of exported names.

@@ -76,5 +76,5 @@ This Python project is managed with [uv](https://docs.astral.sh/uv/#installation
 ```
 uv run pytest test    # run the test suite
 uv run ruff check .   # lint
-uv run mypy src test
+uv run mypy performance_mapper test
 ```
