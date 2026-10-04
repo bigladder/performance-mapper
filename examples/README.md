@@ -78,6 +78,6 @@ usual quality metric hides the problem. The scripts make that concrete:
   extrapolation. The design view is small and mostly green; the actual view is larger and
   mostly amber.
 
-This is the motivating case for the proposed grid-axis independence warning
-(`docs/design/design-axis-independence-warning.md`): a cheap, setup-time signal that the
-chosen axes are redundant, before any of this shows up in an after-the-fact fit report.
+This is the motivating case for the proposed grid-axis independence warning: a cheap,
+setup-time signal that the chosen axes are redundant, before any of this shows up in an
+after-the-fact fit report.

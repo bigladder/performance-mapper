@@ -19,8 +19,7 @@ points (emitting ``DuplicatePointsWarning``) and the map needs far more, less-su
 nodes to cover the scattered temperatures.
 
 This is the same phenomenon the proposed grid-axis independence warning is meant to catch
-before the fit even runs (see docs/design/design-axis-independence-warning.md); here it is
-visible after the fact, in the coverage.
+before the fit even runs; here it is visible after the fact, in the coverage.
 
 Run:
     uv run --package performance-mapper-examples python examples/design_vs_actual_axis.py
