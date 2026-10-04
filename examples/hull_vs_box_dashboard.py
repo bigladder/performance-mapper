@@ -15,7 +15,8 @@ The radio control switches between the two generated datasets, which fill
 ``condenser_liquid_entering_temperature`` differently (design setpoint vs. actual simulated
 value). Switching between them shows the difference the choice makes: the design conditions
 give a small, mostly-supported grid; the actual conditions scatter the condenser axis into
-many values, most of them gap-fill. The zone logic mirrors
+many values, giving a four-times-larger grid with a much larger share of gap-fill nodes. The
+zone logic mirrors
 ``performance_mapper._engine._Regridding._extrapolation_zones``, and both datasets are
 cross-checked against the package's own fit report at startup, so the picture can never
 disagree with the numbers.

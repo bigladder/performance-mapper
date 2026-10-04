@@ -75,8 +75,9 @@ usual quality metric hides the problem. The scripts make that concrete:
 - **`hull_vs_box_dashboard.py`** draws the three-axis grid in 3-D and lets you switch the
   condenser column between design and actual values: green nodes interpolate safely inside
   the data, amber nodes fill gaps never simulated, red nodes (none here) would be
-  extrapolation. The design view is small and mostly green; the actual view is larger and
-  mostly amber.
+  extrapolation. The design view is small and mostly green (49 of 60 nodes inside the hull);
+  the actual view is four times larger and less supported (136 of 240 inside the hull, with
+  104 amber gap-fill nodes).
 
 This is the motivating case for the proposed grid-axis independence warning: a cheap,
 setup-time signal that the chosen axes are redundant, before any of this shows up in an
