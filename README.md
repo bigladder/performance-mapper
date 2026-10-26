@@ -71,23 +71,18 @@ Key behaviors:
 
 ## Examples
 
-The [examples](examples/README.md) directory contains runnable scripts built on a synthetic
-water-cooled chiller dataset whose columns follow the ASHRAE 205 RS0001 (Chiller) schema.
+The [examples](examples/README.md) directory holds self-contained examples, each in its own
+directory with its data, script, figures, and README.
 
-| Script | Description |
-|--------|-------------|
-| `load_and_map.py` | Loads the chiller points, builds one map over all five schema grid variables, and prints the fit report. Start here for basic usage. |
-| `design_vs_actual_axis.py` | Builds the same three-axis map from design and from actual condenser temperatures, and compares the grid coverage of each. |
-| `compare_grids.py` | Builds maps with five, four, and three grid variables, and compares read-back R² with convex-hull coverage as dependent grid variables are removed. |
-| `hull_vs_box_dashboard.py` | Opens an interactive 3-D view of grid coverage in a local web server, with a toggle between the design and actual datasets. |
-| `generate_synthetic_chiller.py` | Regenerates the two chiller datasets in `examples/data/`. The committed CSV files are enough to run the other scripts. |
+| Example | Description |
+|---------|-------------|
+| [chiller](examples/chiller/README.md) | Translates irregular inch-pound chiller operating data, with percent load, into a regular map in SI units with compressor sequence numbers, whose variables follow the ASHRAE 205 RS0001 (Chiller) schema. |
 
-The examples are a separate uv workspace member, so their plotting dependencies are not
-installed with the core package. Run any script from the repository root with
-`--package`:
+The examples' plotting dependency is in the `examples` dependency group, so it is not
+installed with the core package. Run an example from the repository root:
 
 ```
-uv run --package performance-mapper-examples python examples/load_and_map.py
+uv run --group examples python examples/chiller/translate_to_regular_map.py
 ```
 
 ## Development

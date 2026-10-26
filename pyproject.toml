@@ -24,6 +24,9 @@ dev = [
     "mypy",
     "twine>=6.1.0",
 ]
+examples = [
+    "matplotlib>=3.8",
+]
 
 [tool.ruff]
 line-length = 120
@@ -70,9 +73,6 @@ packages = ["performance_mapper"] # see also: 'only-include' https://hatch.pypa.
 # "path-to-extra-resource-files" = "path-in-distribution-package"
 
 [tool.uv]
-
-[tool.uv.workspace]
-members = ["examples"]
 
 [tool.uv.sources]
 
