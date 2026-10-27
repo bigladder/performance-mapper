@@ -1,8 +1,8 @@
 # Chiller: irregular inch-pound operating data to a regular SI map
 
 This example starts from a table of a water-cooled chiller's actual operating points and
-translates it into a performance map on a regular grid, in SI units, whose variables are the
-ASHRAE 205 RS0001 `PerformanceMapCoolingLiquid` Data Elements.
+translates it into a performance map on a regular grid, in SI units, with load expressed as a
+compressor sequence number.
 
 | File | What it is |
 |------|------------|

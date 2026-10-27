@@ -3,8 +3,7 @@
 The input, ``chiller_operating_points.csv``, holds actual operating points of a water-cooled
 chiller: flows in gpm, temperatures in degrees Fahrenheit, load as a percentage of full
 capacity, power in kW, and capacity in tons of refrigeration. The output,
-``chiller_map_si.csv``, is a performance map on a regular grid whose variables are the
-ASHRAE 205 RS0001 ``PerformanceMapCoolingLiquid`` Data Elements, in SI units, with load
+``chiller_map_si.csv``, is a performance map on a regular grid, in SI units, with load
 expressed as a compressor sequence number.
 
 Every output variable is defined by a transformation of the input columns, which receive

@@ -17,7 +17,7 @@ Domain vocabulary lives in [CONTEXT.md](../CONTEXT.md).
 - **`PerformanceMap`** — the output: `grid_variables` (each with `name`, `units`, and its
   axis values) and `lookup_variables` (each with `name`, `units`, and a flattened value
   list of length ∏(axis lengths), **row-major with the last grid variable varying
-  fastest**, matching the 205 array convention). Values are stored in their declared
+  fastest**). Values are stored in their declared
   units; units are metadata carried by this package.
 - A future utility will convert row-oriented data (`list[dict]`) into a `PointTable`.
 

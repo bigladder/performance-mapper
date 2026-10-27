@@ -2,10 +2,9 @@
 
 # performance-mapper
 
-Utilities for working with performance maps as structured by ASHRAE Standard 205 (and the
-forthcoming Standard 232): a set of **grid variables** whose values define a regular grid,
-and **lookup variables** with one value at every grid point. The package is agnostic to
-what a map describes — HVAC equipment or otherwise.
+Utilities for working with performance maps: a set of **grid variables** whose values
+define a regular grid, and **lookup variables** with one value at every grid point. The
+package is agnostic to what a map describes — HVAC equipment or otherwise.
 
 The core operation translates sparse or scattered performance points (a `PointTable`) into
 a `PerformanceMap` on a regular grid, using radial basis function interpolation
@@ -59,8 +58,7 @@ Key behaviors:
 - **Grid axes** come from explicit `values`, a linear `range`/`number_of_points` spacing
   (optionally expressed in `axis_units`), or default to the sorted unique values of the
   data.
-- **Lookup values** are flattened row-major with the last grid variable varying fastest
-  (the ASHRAE 205 array convention).
+- **Lookup values** are flattened row-major with the last grid variable varying fastest.
 - **The fit report** (optional, scipy-style tuple return) measures how well the grid
   reproduces the original points under multilinear read-back, and classifies grid points
   by extrapolation risk (inside the data's convex hull, gap-filling inside the bounding
@@ -76,7 +74,7 @@ directory with its data, script, figures, and README.
 
 | Example | Description |
 |---------|-------------|
-| [chiller](examples/chiller/README.md) | Translates irregular inch-pound chiller operating data, with percent load, into a regular map in SI units with compressor sequence numbers, whose variables follow the ASHRAE 205 RS0001 (Chiller) schema. |
+| [chiller](examples/chiller/README.md) | Translates irregular inch-pound chiller operating data, with percent load, into a regular map in SI units with compressor sequence numbers. |
 
 The examples' plotting dependency is in the `examples` dependency group, so it is not
 installed with the core package. Run an example from the repository root:

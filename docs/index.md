@@ -1,7 +1,6 @@
 # performance-mapper documentation
 
-Utilities for working with performance maps as structured by ASHRAE Standard 205
-(and the forthcoming Standard 232): a set of **grid variables** whose values define a
+Utilities for working with performance maps: a set of **grid variables** whose values define a
 regular grid, and **lookup variables** with one value at every grid point.
 
 This directory holds the project's prose documentation. It is currently a set of
