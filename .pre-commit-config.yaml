@@ -15,4 +15,3 @@ repos:
         language: system
         types:
           - python
-        exclude: ^examples/
