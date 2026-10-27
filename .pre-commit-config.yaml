@@ -1,21 +1,18 @@
 repos:
-- repo: https://github.com/astral-sh/ruff-pre-commit
-  # Ruff version.
-  rev: v0.9.9
-  hooks:
-    # Run the formatter (automatically fixes in-place)
-    - id: ruff-format
-    # Run the linter
-    - id: ruff
-      args: [ --fix ]
-- repo: local
-  hooks:
-    - id: mypy
-      name: mypy
-      entry: uv run mypy
-      require_serial: true
-      language: system
-      types: [python]
-      # Type-check the package and its tests only; the examples are runnable scripts whose
-      # plotting dependency (matplotlib) is in a separate dependency group.
-      exclude: ^examples/
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.9.9
+    hooks:
+      - id: ruff-format
+      - id: ruff
+        args:
+          - --fix
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: uv run mypy
+        require_serial: true
+        language: system
+        types:
+          - python
+        exclude: ^examples/

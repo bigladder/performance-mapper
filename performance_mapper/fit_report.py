@@ -10,8 +10,9 @@ class LookupVariableFitStatistics:
     """Read-back error statistics for one lookup variable, in its declared units.
 
     Residuals are (grid read back by multilinear interpolation) minus (actual derived
-    value), one per in-grid performance point, in the order the points survived
-    duplicate averaging.
+    value), one per input performance point in input order, each compared with that point's
+    own value even when duplicate points were averaged for fitting. Points outside the
+    grid's axis ranges have NaN residuals and are excluded from the statistics.
     """
 
     name: str
