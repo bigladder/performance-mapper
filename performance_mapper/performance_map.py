@@ -1,4 +1,4 @@
-"""The performance map data structure, per ASHRAE Standard 205."""
+"""The performance map data structure."""
 
 from __future__ import annotations
 
@@ -23,8 +23,8 @@ class GridVariable:
 class LookupVariable:
     """A dependent variable with one value at every grid point.
 
-    Values are flattened row-major: the last grid variable varies fastest (ASHRAE 205 array
-    convention), and the list length is the product of the axis lengths.
+    Values are flattened row-major: the last grid variable varies fastest, and the list length is the product
+    of the axis lengths.
     """
 
     name: str
@@ -36,7 +36,7 @@ class LookupVariable:
 class PerformanceMap:
     """A set of grid variables and the lookup variables defined over their regular grid.
 
-    Values are stored in each variable's declared units. (ASHRAE 205 representations fix
+    Values are stored in each variable's declared units. (Representations will fix
     units in the schema; reconciling them is an exporter's concern, not the map's.)
     """
 

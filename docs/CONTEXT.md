@@ -1,11 +1,11 @@
 # Performance Mapper
 
-A Python package for working with data structured as performance maps (per ASHRAE Standard 205, expected to be adopted by ASHRAE Standard 232). Agnostic to what the map describes (HVAC equipment or otherwise); specific to the grid-variable/lookup-variable structure.
+A Python package for working with data structured as performance maps; specific to the grid-variable/lookup-variable structure.
 
 ## Language
 
 **Performance map**:
-A data structure pairing a set of grid variables with a set of lookup variables, per ASHRAE 205.
+A data structure pairing a set of grid variables with a set of lookup variables.
 
 **Grid variable**:
 An independent variable whose distinct values define one axis of a regular grid.

@@ -63,23 +63,23 @@ def test_unit_conversion_on_ingest_and_egress() -> None:
 
 
 def test_transformation_creates_derived_grid_variable() -> None:
-    """The chiller-study pattern: percent load becomes a compressor sequence number."""
+    """A step transformation turns a continuous input column into an integer-valued grid axis."""
     table = PointTable(
         [
-            Column("percent load", "%", [25.0, 50.0, 75.0, 100.0]),
-            Column("power", "W", [1.0, 2.0, 3.0, 4.0]),
+            Column("valve opening", "%", [10.0, 35.0, 60.0, 85.0]),
+            Column("heat rate", "W", [5.0, 10.0, 15.0, 20.0]),
         ]
     )
     performance_map = table.to_performance_map(
         grid_variables=[
             GridVariableSpecification(
-                "compressor sequence number", "", transformation=lambda point: round(point["percent load"] * 4)
+                "valve position index", "", transformation=lambda point: round(point["valve opening"] * 4) + 1
             )
         ],
-        lookup_variables=[LookupVariableSpecification("power", "W")],
+        lookup_variables=[LookupVariableSpecification("heat rate", "W")],
     )
     assert performance_map.grid_variables[0].values == (1.0, 2.0, 3.0, 4.0)
-    assert np.allclose(performance_map.lookup_variables[0].values, [1.0, 2.0, 3.0, 4.0], atol=1e-8)
+    assert np.allclose(performance_map.lookup_variables[0].values, [5.0, 10.0, 15.0, 20.0], atol=1e-8)
 
 
 def test_transformations_receive_si_values() -> None:

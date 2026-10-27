@@ -1,4 +1,4 @@
-"""Utilities for working with performance maps (per ASHRAE Standard 205).
+"""Utilities for working with performance maps.
 
 Agnostic to what a map describes; specific to the grid-variable/lookup-variable
 structure. The core operation translates sparse or scattered performance points

@@ -79,7 +79,7 @@ def compressor_sequence_number(load_fraction: float) -> int:
 
 
 def grid_variables() -> list[GridVariableSpecification]:
-    """The five RS0001 CoolingLiquid grid variables, each with an evenly spaced axis stated in
+    """Five example grid variables, each with an evenly spaced axis stated in
     inch-pound units through ``axis_units`` and stored in SI.
     """
     return [
