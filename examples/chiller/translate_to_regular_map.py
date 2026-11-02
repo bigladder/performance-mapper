@@ -1,10 +1,10 @@
-"""Translate irregular chiller operating data in inch-pound units into a regular SI performance map.
+"""Translate chiller operating data in inch-pound units into a regular SI performance map.
 
-The input, ``chiller_operating_points.csv``, holds actual operating points of a water-cooled
-chiller: flows in gpm, temperatures in degrees Fahrenheit, load as a percentage of full
-capacity, power in kW, and capacity in tons of refrigeration. The output,
-``chiller_map_si.csv``, is a performance map on a regular grid, in SI units, with load
-expressed as a compressor sequence number.
+The input, ``chiller_operating_points.csv`` (written by ``generate_operating_points.py``),
+holds a water-cooled chiller's operating points: flows in gpm, temperatures in degrees
+Fahrenheit, load as a percentage of full capacity, power in kW, and capacity in tons of
+refrigeration. The output, ``chiller_map_si.csv``, is a performance map on a regular grid, in
+SI units, with load expressed as a compressor sequence number.
 
 Every output variable is defined by a transformation of the input columns, which receive
 values already converted to SI. The script also writes the figures in ``images/`` that the
@@ -46,16 +46,27 @@ CHILLED_WATER_FLOW = "chilled water flow"
 CHILLED_WATER_LEAVING_TEMPERATURE = "chilled water leaving temperature"
 CONDENSER_WATER_FLOW = "condenser water flow"
 CONDENSER_WATER_ENTERING_TEMPERATURE = "condenser water entering temperature"
+CONDENSER_WATER_LEAVING_TEMPERATURE = "condenser water leaving temperature"
 PERCENT_LOAD = "percent load"
 POWER = "power"
 CAPACITY = "capacity"
 
 # The load steps the chiller was run at, as a fraction of full capacity.
 LOAD_STEP = 0.1
-MINIMUM_LOAD = 0.2
+
+# Condenser flows (gpm) are matched to one decimal place, the precision of the input file.
+FLOW_DECIMALS = 1
+
+# Volumetric heat capacity of water near 75 degF, in J/(m**3 K).
+WATER_VOLUMETRIC_HEAT_CAPACITY = 997.0 * 4181.0
+
+# The plotted map slice: grid indices of chilled water flow, chilled water leaving temperature,
+# and condenser water flow, and the compressor sequence numbers drawn.
+SLICE_INDICES = (1, 2, 1)
+SLICE_SEQUENCE_NUMBERS = (1, 5, 9)
 
 # How close an operating point must be to the plotted map slice to be drawn beside it.
-NEAR_SLICE_FLOW_FRACTION = 0.1
+NEAR_SLICE_FLOW_FRACTION = 0.05
 NEAR_SLICE_TEMPERATURE_DIFFERENCE = 1.5  # degF
 
 # Chart styling.
@@ -72,21 +83,37 @@ def column_values(points: PointTable, name: str) -> np.ndarray:
     return np.array(next(column.values for column in points.columns if column.name == name))
 
 
-def compressor_sequence_number(load_fraction: float) -> int:
-    """Number the load steps from 1 at minimum load, rounding each point to its nearest step."""
-    return round((load_fraction - MINIMUM_LOAD) / LOAD_STEP) + 1
+def flow_key(condenser_water_flow: float) -> float:
+    """A condenser flow in gpm, rounded so that every point of one run shares the same key."""
+    return round(condenser_water_flow, FLOW_DECIMALS)
 
 
-def grid_variables() -> list[GridVariableSpecification]:
-    """Five example grid variables, each with an evenly spaced axis stated in
-    inch-pound units through ``axis_units`` and stored in SI.
+def minimum_load_by_flow(points: PointTable) -> dict[float, float]:
+    """The lowest load fraction measured at each condenser flow (gpm)."""
+    minimum_loads: dict[float, float] = {}
+    for flow, percent_load in zip(column_values(points, CONDENSER_WATER_FLOW), column_values(points, PERCENT_LOAD)):
+        key = flow_key(flow)
+        minimum_loads[key] = min(minimum_loads.get(key, 1.0), percent_load / 100)
+    return minimum_loads
+
+
+def compressor_sequence_number(load_fraction: float, minimum_load_fraction: float) -> int:
+    """Number the load steps from 1 at the lowest load measured at the point's flow, rounding
+    each point to its nearest step."""
+    return round((load_fraction - minimum_load_fraction) / LOAD_STEP) + 1
+
+
+def grid_variables(minimum_loads: dict[float, float]) -> list[GridVariableSpecification]:
+    """Five grid variables. The flow and temperature axes are evenly spaced, stated in
+    inch-pound units through ``axis_units`` and stored in SI; the sequence number axis takes
+    the values found in the data.
     """
     return [
         GridVariableSpecification(
             "evaporator_liquid_volumetric_flow_rate",
             "m**3/s",
             transformation=lambda point: point[CHILLED_WATER_FLOW],
-            range=(840.0, 1260.0),
+            range=(346.5, 515.7),
             number_of_points=3,
             axis_units="gpm",
         ),
@@ -94,15 +121,15 @@ def grid_variables() -> list[GridVariableSpecification]:
             "evaporator_liquid_leaving_temperature",
             "K",
             transformation=lambda point: point[CHILLED_WATER_LEAVING_TEMPERATURE],
-            range=(39.0, 53.0),
-            number_of_points=8,
+            range=(42.0, 62.0),
+            number_of_points=5,
             axis_units="degF",
         ),
         GridVariableSpecification(
             "condenser_liquid_volumetric_flow_rate",
             "m**3/s",
             transformation=lambda point: point[CONDENSER_WATER_FLOW],
-            range=(1080.0, 1720.0),
+            range=(417.4, 585.9),
             number_of_points=3,
             axis_units="gpm",
         ),
@@ -110,14 +137,16 @@ def grid_variables() -> list[GridVariableSpecification]:
             "condenser_liquid_entering_temperature",
             "K",
             transformation=lambda point: point[CONDENSER_WATER_ENTERING_TEMPERATURE],
-            range=(64.0, 89.0),
-            number_of_points=6,
+            range=(65.0, 85.0),
+            number_of_points=5,
             axis_units="degF",
         ),
         GridVariableSpecification(
             "compressor_sequence_number",
             "",
-            transformation=lambda point: compressor_sequence_number(point[PERCENT_LOAD]),
+            transformation=lambda point: compressor_sequence_number(
+                point[PERCENT_LOAD], minimum_loads[flow_key(to_u(point[CONDENSER_WATER_FLOW], "gpm"))]
+            ),
         ),
     ]
 
@@ -131,6 +160,34 @@ def lookup_variables() -> list[LookupVariableSpecification]:
             "net_condenser_capacity", "W", transformation=lambda point: point[CAPACITY] + point[POWER]
         ),
     ]
+
+
+def condenser_temperature_rise(points: PointTable) -> np.ndarray:
+    """Condenser water leaving minus entering temperature at each point, in degrees Fahrenheit."""
+    return column_values(points, CONDENSER_WATER_LEAVING_TEMPERATURE) - column_values(
+        points, CONDENSER_WATER_ENTERING_TEMPERATURE
+    )
+
+
+def print_heat_balance(points: PointTable) -> None:
+    """Compare the heat the condenser water carries away with capacity plus power, and fit
+    percent load as a straight line in the condenser temperature rise."""
+    rise = condenser_temperature_rise(points)
+    carried = (
+        fr_u(column_values(points, CONDENSER_WATER_FLOW), "gpm")
+        * fr_u(rise, "delta_degF")
+        * WATER_VOLUMETRIC_HEAT_CAPACITY
+    )
+    rejected = fr_u(column_values(points, CAPACITY), "ton_ref") + fr_u(column_values(points, POWER), "kW")
+    ratio = carried / rejected
+    print(f"condenser heat balance, carried / (capacity + power): {ratio.min():.3f} to {ratio.max():.3f}")
+    percent_load = column_values(points, PERCENT_LOAD)
+    slope, intercept = np.polyfit(rise, percent_load, 1)
+    residual = percent_load - (slope * rise + intercept)
+    print(
+        f"percent load ~ {slope:.2f} x condenser rise (degF) {intercept:+.2f}; "
+        f"RMS error {np.sqrt(np.mean(residual**2)):.2f} %, largest {np.abs(residual).max():.2f} %"
+    )
 
 
 def print_summary(points: PointTable, performance_map: PerformanceMap, report: FitReport) -> None:
@@ -168,7 +225,8 @@ def style_axes(axes: plt.Axes, title: str, x_label: str, y_label: str) -> None:
 
 
 def plot_input_points(points: PointTable, performance_map: PerformanceMap, path: Path) -> None:
-    """Scatter the irregular operating temperatures, colored by percent load, over the regular grid."""
+    """Scatter the operating temperatures, colored by percent load, over the regular grid. Each
+    run's points spread left from its nominal condenser temperature as condenser relief lowers it."""
     figure, axes = plt.subplots(figsize=(7.5, 5), facecolor=SURFACE)
     for value in to_u(np.array(performance_map.grid_variables[3].values), "degF"):
         axes.axvline(value, color=GRID_LINE, linewidth=1, zorder=0)
@@ -179,7 +237,7 @@ def plot_input_points(points: PointTable, performance_map: PerformanceMap, path:
         column_values(points, CHILLED_WATER_LEAVING_TEMPERATURE),
         c=column_values(points, PERCENT_LOAD),
         cmap=SEQUENTIAL,
-        s=36,
+        s=48,
         edgecolors=SURFACE,
         linewidths=1,
         zorder=2,
@@ -190,7 +248,7 @@ def plot_input_points(points: PointTable, performance_map: PerformanceMap, path:
     colorbar.ax.tick_params(colors=TEXT_SECONDARY, length=0)
     style_axes(
         axes,
-        "Irregular operating points and the regular grid (lines)",
+        "Operating points and the regular grid (lines)",
         "condenser water entering temperature (°F)",
         "chilled water leaving temperature (°F)",
     )
@@ -199,46 +257,54 @@ def plot_input_points(points: PointTable, performance_map: PerformanceMap, path:
     plt.close(figure)
 
 
-def plot_load_to_sequence(points: PointTable, path: Path) -> None:
-    """Show the step transformation from percent load to compressor sequence number."""
-    figure, axes = plt.subplots(figsize=(7.5, 4), facecolor=SURFACE)
-    loads = np.linspace(MINIMUM_LOAD - LOAD_STEP / 2, 1.0 + LOAD_STEP / 2, 500)
-    axes.plot(
-        100 * loads,
-        [compressor_sequence_number(load) for load in loads],
-        color=TEXT_SECONDARY,
-        linewidth=2,
-        drawstyle="steps-mid",
-        label="transformation",
-        zorder=1,
-    )
-    point_loads = column_values(points, PERCENT_LOAD)
-    axes.scatter(
-        point_loads,
-        [compressor_sequence_number(load / 100) for load in point_loads],
-        color=SERIES[0],
-        s=36,
-        edgecolors=SURFACE,
-        linewidths=1,
-        label="operating points",
-        zorder=2,
-    )
-    axes.set_yticks(range(1, compressor_sequence_number(1.0) + 1))
+def plot_load_against_condenser_rise(points: PointTable, path: Path) -> None:
+    """Plot percent load against the condenser water temperature rise, colored by the nominal
+    (full-load) condenser water entering temperature of each point's run."""
+    rise = condenser_temperature_rise(points)
+    percent_load = column_values(points, PERCENT_LOAD)
+    flows = column_values(points, CONDENSER_WATER_FLOW)
+    entering = column_values(points, CONDENSER_WATER_ENTERING_TEMPERATURE)
+    full_load = percent_load == 100  # noqa: PLR2004
+    full_load_entering = {
+        flow_key(flow): temperature for flow, temperature in zip(flows[full_load], entering[full_load])
+    }
+    nominal = np.array([full_load_entering[flow_key(flow)] for flow in flows])
+
+    figure, axes = plt.subplots(figsize=(7.5, 4.5), facecolor=SURFACE)
+    axes.plot([0, 10], [0, 100], color=GRID_LINE, linewidth=2, zorder=0, label="percent load = 10 × rise")
+    for color, temperature in zip(SERIES, sorted(set(nominal))):
+        selected = nominal == temperature
+        axes.scatter(
+            rise[selected],
+            percent_load[selected],
+            color=color,
+            s=36,
+            edgecolors=SURFACE,
+            linewidths=1,
+            zorder=2,
+            label=f"nominal condenser water {temperature:.0f} °F",
+        )
     axes.legend(frameon=False, labelcolor=TEXT_SECONDARY, loc="upper left")
-    style_axes(axes, "Percent load to compressor sequence number", "percent load (%)", "compressor sequence number")
+    style_axes(
+        axes,
+        "Percent load follows the condenser water temperature rise",
+        "condenser water leaving − entering temperature (°F)",
+        "percent load (%)",
+    )
     figure.tight_layout()
     figure.savefig(path, dpi=150)
     plt.close(figure)
 
 
-def plot_map_slice(points: PointTable, performance_map: PerformanceMap, path: Path) -> None:
+def plot_map_slice(
+    points: PointTable, minimum_loads: dict[float, float], performance_map: PerformanceMap, path: Path
+) -> None:
     """Plot input power along the condenser temperature axis of the map, for three sequence numbers,
     with the operating points nearest that slice for comparison.
     """
-    evaporator_flow_index, evaporator_temperature_index, condenser_flow_index = 1, 2, 0
+    evaporator_flow_index, evaporator_temperature_index, condenser_flow_index = SLICE_INDICES
     grid = performance_map.grid_variables
     power = np.array(performance_map.lookup_variables[0].values).reshape(performance_map.grid_shape)
-    sequence_numbers = (1, 5, 9)
 
     # Compare in the input file's units: gpm, degrees Fahrenheit, and kW.
     slice_evaporator_flow = to_u(grid[0].values[evaporator_flow_index], "gpm")
@@ -252,13 +318,18 @@ def plot_map_slice(points: PointTable, performance_map: PerformanceMap, path: Pa
         )
         & (np.abs(column_values(points, CONDENSER_WATER_FLOW) / slice_condenser_flow - 1.0) < NEAR_SLICE_FLOW_FRACTION)
     )
-    point_sequence = np.array([compressor_sequence_number(load / 100) for load in column_values(points, PERCENT_LOAD)])
+    point_sequence = np.array(
+        [
+            compressor_sequence_number(load / 100, minimum_loads[flow_key(flow)])
+            for load, flow in zip(column_values(points, PERCENT_LOAD), column_values(points, CONDENSER_WATER_FLOW))
+        ]
+    )
     point_condenser_temperature = fr_u(column_values(points, CONDENSER_WATER_ENTERING_TEMPERATURE), "degF")
     point_power = column_values(points, POWER)
 
     figure, axes = plt.subplots(figsize=(7.5, 5), facecolor=SURFACE)
     condenser_temperatures = np.array(grid[3].values)
-    for color, sequence_number in zip(SERIES, sequence_numbers):
+    for color, sequence_number in zip(SERIES, SLICE_SEQUENCE_NUMBERS):
         sequence_index = grid[4].values.index(sequence_number)
         slice_power = power[
             evaporator_flow_index, evaporator_temperature_index, condenser_flow_index, :, sequence_index
@@ -304,7 +375,7 @@ def plot_map_slice(points: PointTable, performance_map: PerformanceMap, path: Pa
         label="nearby operating points",
     )
     axes.margins(x=0.12)
-    axes.legend(frameon=False, labelcolor=TEXT_SECONDARY, loc="center left")
+    axes.legend(frameon=False, labelcolor=TEXT_SECONDARY, loc="upper left")
     slice_note = (
         f"evaporator {grid[0].values[evaporator_flow_index]:.4f} m³/s leaving at "
         f"{grid[1].values[evaporator_temperature_index]:.2f} K; "
@@ -323,14 +394,18 @@ def plot_map_slice(points: PointTable, performance_map: PerformanceMap, path: Pa
 
 def main() -> None:
     points = PointTable.from_csv(INPUT_PATH)
-    performance_map, report = points.to_performance_map(grid_variables(), lookup_variables(), fit_report=True)
+    minimum_loads = minimum_load_by_flow(points)
+    performance_map, report = points.to_performance_map(
+        grid_variables(minimum_loads), lookup_variables(), fit_report=True
+    )
     performance_map.to_csv(OUTPUT_PATH)
     print_summary(points, performance_map, report)
+    print_heat_balance(points)
 
     IMAGE_DIRECTORY.mkdir(exist_ok=True)
     plot_input_points(points, performance_map, IMAGE_DIRECTORY / "input_points.png")
-    plot_load_to_sequence(points, IMAGE_DIRECTORY / "percent_load_to_sequence.png")
-    plot_map_slice(points, performance_map, IMAGE_DIRECTORY / "map_slice.png")
+    plot_load_against_condenser_rise(points, IMAGE_DIRECTORY / "load_against_condenser_rise.png")
+    plot_map_slice(points, minimum_loads, performance_map, IMAGE_DIRECTORY / "map_slice.png")
     print(f"wrote figures to {IMAGE_DIRECTORY.relative_to(EXAMPLE_DIRECTORY.parent.parent)}")
 
 
