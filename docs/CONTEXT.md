@@ -19,6 +19,9 @@ A single observed or simulated operating condition — one value for each variab
 **Point table**:
 A collection of performance points. Unlike a performance map, its points are unstructured (sparse or scattered).
 
+**Irregular data**:
+The values of a point table, which need not lie on any grid. The grid fit compares the performance map, read back at the irregular data points, to the irregular data.
+
 **Transformation**:
 A function that computes a derived variable's value at a single performance point from that point's other values. Applies equally to grid and lookup variables.
 

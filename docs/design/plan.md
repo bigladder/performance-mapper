@@ -107,10 +107,10 @@ use case. Exposure is made visible in the fit report instead (see below).
 
 ## Fit report (optional)
 
-`fit_report=True` evaluates how well the *regular grid* reproduces the original points the
-way a downstream consumer will read it: each original point is located in grid space (same
+`fit_report=True` evaluates how well the *regular grid* reproduces the irregular data the
+way a downstream consumer will read it: each irregular data point is located in grid space (same
 transformations), the grid is read back by **multilinear interpolation**
-(`scipy.interpolate.RegularGridInterpolator`), and predictions are compared to actuals.
+(`scipy.interpolate.RegularGridInterpolator`), and predictions are compared to the irregular data.
 With `smoothing=0` the RBF surface is exact at data points, so this measures
 **discretization error** — "is my grid resolution good enough?"
 
@@ -121,7 +121,7 @@ Contents:
   over in-grid points.
 - Per-lookup-variable statistics in declared units: RMSE, max |error|, mean bias — plus
   raw per-point residuals for debugging.
-- Original points outside the grid's axis ranges: excluded from statistics, listed.
+- Irregular data points outside the grid's axis ranges: excluded from statistics, listed.
 - **Extrapolation zones** for grid points, by rising risk: inside the data's convex hull
   (true interpolation); outside the hull but inside the bounding box (gap-filling);
   outside the bounding box (pure extrapolation). Hull membership via Delaunay

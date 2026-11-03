@@ -1,13 +1,13 @@
 # Chiller: inch-pound operating data to a regular SI map
 
-This example starts from a table of a water-cooled chiller's operating points, in inch-pound
+This example starts from a table of a water-cooled chiller's irregular data, in inch-pound
 units, and translates it into a performance map on a regular grid, in SI units, with load
 expressed as a compressor sequence number.
 
 | File | What it is |
 |------|------------|
-| `generate_operating_points.py` | Writes the synthetic input data. |
-| `chiller_operating_points.csv` | The input: 102 operating points in inch-pound units. |
+| `generate_irregular_data.py` | Writes the synthetic input data. |
+| `chiller_irregular_data.csv` | The input: 102 irregular data points in inch-pound units. |
 | `translate_to_regular_map.py` | Builds the map, prints a fit summary and a heat-balance check, and draws the figures below. |
 | `chiller_map_si.csv` | The output: the regular SI map, one row per grid node. |
 | `images/` | The figures, written by the script. |
@@ -15,13 +15,13 @@ expressed as a compressor sequence number.
 Run both scripts from the repository root:
 
 ```
-uv run --group examples python examples/chiller/generate_operating_points.py
+uv run --group examples python examples/chiller/generate_irregular_data.py
 uv run --group examples python examples/chiller/translate_to_regular_map.py
 ```
 
 ## The input
 
-Each row is one operating point:
+Each row is one irregular data point:
 
 | Column | Units |
 |--------|-------|
@@ -59,7 +59,7 @@ conditions, and one row for each load step within the run.
   condenser temperatures do not repeat from one run to the next. Because every run ends
   at 65 °F, the missing high-setpoint, cold-condenser runs are hidden in the figure below.
 
-![Operating points over the regular grid](images/input_points.png)
+![Irregular data over the regular grid](images/irregular_data.png)
 
 ## Percent load to compressor sequence number
 
@@ -76,7 +76,7 @@ Rounding places each point on its nearest step. A skipped step, such as the 90 %
 the 65 °F condenser water runs, leaves its number unused rather than renumbering the steps
 above it.
 
-A transformation sees one operating point at a time, so the script first collects the
+A transformation sees one irregular data point at a time, so the script first collects the
 lowest load at each condenser flow (`minimum_load_by_flow`). The sequence number
 transformation then looks up the point's flow in that table.
 
@@ -102,8 +102,8 @@ of 0.7 % of load. The heat carried by the water matches capacity plus power to w
 
 ## The other transformations
 
-Every map variable is defined by a transformation: a function that receives one operating
-point, with its values already in SI, and returns the variable's value.
+Every map variable is defined by a transformation: a function that receives one irregular
+data point, with its values already in SI, and returns the variable's value.
 
 - The four flow and temperature grid variables pass the matching input column through. Each
   axis is evenly spaced, stated in inch-pound units through `axis_units` (for example 42 °F
@@ -114,8 +114,8 @@ point, with its values already in SI, and returns the variable's value.
 
 ## The map
 
-The result is a 3 × 5 × 3 × 5 × 9 grid of 2,025 nodes. Read back at the input points, it
-reproduces them with R² ≈ 0.998.
+The result is a 3 × 5 × 3 × 5 × 9 grid of 2,025 nodes. Read back at the irregular data
+points, it reproduces them with R² ≈ 0.998.
 
 Only 23 nodes fall inside the convex hull of the data, which is the smallest region
 enclosing every point. There are two reasons:

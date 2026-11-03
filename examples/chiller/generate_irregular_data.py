@@ -1,8 +1,8 @@
-"""Generate the synthetic chiller operating points used by ``translate_to_regular_map.py``.
+"""Generate the synthetic irregular chiller data used by ``translate_to_regular_map.py``.
 
-The points describe a water-cooled chiller of about 150 tons with two compressors, in the
+The data describes a water-cooled chiller of about 150 tons with two compressors, in the
 form chiller selection software reports: one run per pair of design temperatures, and one row
-per load step within the run. The script writes ``chiller_operating_points.csv`` in
+per load step within the run. The script writes ``chiller_irregular_data.csv`` in
 inch-pound units.
 
 Each run fixes a chilled water leaving temperature setpoint and a nominal condenser water
@@ -16,7 +16,7 @@ each compressor, with the second compressor starting above 50 % load.
 
 Run from the repository root:
 
-    uv run --group examples python examples/chiller/generate_operating_points.py
+    uv run --group examples python examples/chiller/generate_irregular_data.py
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
-OUTPUT_PATH = Path(__file__).parent / "chiller_operating_points.csv"
+OUTPUT_PATH = Path(__file__).parent / "chiller_irregular_data.csv"
 
 HEADER = [
     "chilled water flow (gpm)",
@@ -124,7 +124,7 @@ def load_steps(setpoint: float, nominal_condenser_temperature: float) -> list[in
 
 
 def run_rows(setpoint: float, nominal_condenser_temperature: float) -> list[list[float]]:
-    """The operating points of one run, one row per load step, in the order of ``HEADER``."""
+    """The irregular data points of one run, one row per load step, in the order of ``HEADER``."""
     design_capacity = full_load_capacity(setpoint, nominal_condenser_temperature)
     design_rejected_heat = design_capacity * KW_PER_TON + full_load_power(setpoint, nominal_condenser_temperature)
     chilled_water_flow = design_capacity * GPM_PER_TON_PER_DEGF / DESIGN_TEMPERATURE_DIFFERENCE
@@ -162,7 +162,7 @@ def main() -> None:
         writer = csv.writer(file)
         writer.writerow(HEADER)
         writer.writerows(rows)
-    print(f"wrote {len(rows)} operating points to {OUTPUT_PATH.name}")
+    print(f"wrote {len(rows)} irregular data points to {OUTPUT_PATH.name}")
 
 
 if __name__ == "__main__":

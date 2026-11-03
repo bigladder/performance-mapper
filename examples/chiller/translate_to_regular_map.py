@@ -1,7 +1,7 @@
 """Translate chiller operating data in inch-pound units into a regular SI performance map.
 
-The input, ``chiller_operating_points.csv`` (written by ``generate_operating_points.py``),
-holds a water-cooled chiller's operating points: flows in gpm, temperatures in degrees
+The input, ``chiller_irregular_data.csv`` (written by ``generate_irregular_data.py``),
+holds irregular data for a water-cooled chiller: flows in gpm, temperatures in degrees
 Fahrenheit, load as a percentage of full capacity, power in kW, and capacity in tons of
 refrigeration. The output, ``chiller_map_si.csv``, is a performance map on a regular grid, in
 SI units, with load expressed as a compressor sequence number.
@@ -37,7 +37,7 @@ from performance_mapper import (  # noqa: E402
 )
 
 EXAMPLE_DIRECTORY = Path(__file__).parent
-INPUT_PATH = EXAMPLE_DIRECTORY / "chiller_operating_points.csv"
+INPUT_PATH = EXAMPLE_DIRECTORY / "chiller_irregular_data.csv"
 OUTPUT_PATH = EXAMPLE_DIRECTORY / "chiller_map_si.csv"
 IMAGE_DIRECTORY = EXAMPLE_DIRECTORY / "images"
 
@@ -65,7 +65,7 @@ WATER_VOLUMETRIC_HEAT_CAPACITY = 997.0 * 4181.0
 SLICE_INDICES = (1, 2, 1)
 SLICE_SEQUENCE_NUMBERS = (1, 5, 9)
 
-# How close an operating point must be to the plotted map slice to be drawn beside it.
+# How close an irregular data point must be to the plotted map slice to be drawn beside it.
 NEAR_SLICE_FLOW_FRACTION = 0.05
 NEAR_SLICE_TEMPERATURE_DIFFERENCE = 1.5  # degF
 
@@ -195,7 +195,7 @@ def print_summary(points: PointTable, performance_map: PerformanceMap, report: F
     total = int(np.prod(performance_map.grid_shape))
     outside_box = len(report.grid_points_outside_bounding_box)
     outside_hull = len(report.grid_points_outside_convex_hull)
-    print(f"read {len(points)} operating points from {INPUT_PATH.name}")
+    print(f"read {len(points)} irregular data points from {INPUT_PATH.name}")
     print(f"wrote a {' x '.join(map(str, performance_map.grid_shape))} grid ({total:,} nodes) to {OUTPUT_PATH.name}")
     for grid_variable in performance_map.grid_variables:
         values = ", ".join(f"{value:.6g}" for value in grid_variable.values)
@@ -208,7 +208,7 @@ def print_summary(points: PointTable, performance_map: PerformanceMap, report: F
             f"grid nodes inside the data's convex hull: {total - outside_box - outside_hull:,}; "
             f"in the bounding box but outside the hull: {outside_hull:,}; outside the bounding box: {outside_box:,}"
         )
-    print(f"input points outside the grid's range: {len(report.points_outside_grid)}")
+    print(f"irregular data points outside the grid's range: {len(report.points_outside_grid)}")
 
 
 def style_axes(axes: plt.Axes, title: str, x_label: str, y_label: str) -> None:
@@ -224,7 +224,7 @@ def style_axes(axes: plt.Axes, title: str, x_label: str, y_label: str) -> None:
         axes.spines[side].set_color(GRID_LINE)
 
 
-def plot_input_points(points: PointTable, performance_map: PerformanceMap, path: Path) -> None:
+def plot_irregular_data(points: PointTable, performance_map: PerformanceMap, path: Path) -> None:
     """Scatter the operating temperatures, colored by percent load, over the regular grid. Each
     run's points spread left from its nominal condenser temperature as condenser relief lowers it."""
     figure, axes = plt.subplots(figsize=(7.5, 5), facecolor=SURFACE)
@@ -248,7 +248,7 @@ def plot_input_points(points: PointTable, performance_map: PerformanceMap, path:
     colorbar.ax.tick_params(colors=TEXT_SECONDARY, length=0)
     style_axes(
         axes,
-        "Operating points and the regular grid (lines)",
+        "Irregular data and the regular grid (lines)",
         "condenser water entering temperature (°F)",
         "chilled water leaving temperature (°F)",
     )
@@ -300,7 +300,7 @@ def plot_map_slice(
     points: PointTable, minimum_loads: dict[float, float], performance_map: PerformanceMap, path: Path
 ) -> None:
     """Plot input power along the condenser temperature axis of the map, for three sequence numbers,
-    with the operating points nearest that slice for comparison.
+    with the irregular data points nearest that slice for comparison.
     """
     evaporator_flow_index, evaporator_temperature_index, condenser_flow_index = SLICE_INDICES
     grid = performance_map.grid_variables
@@ -372,7 +372,7 @@ def plot_map_slice(
         linewidths=2,
         s=64,
         marker="D",
-        label="nearby operating points",
+        label="nearby irregular data",
     )
     axes.margins(x=0.12)
     axes.legend(frameon=False, labelcolor=TEXT_SECONDARY, loc="upper left")
@@ -403,7 +403,7 @@ def main() -> None:
     print_heat_balance(points)
 
     IMAGE_DIRECTORY.mkdir(exist_ok=True)
-    plot_input_points(points, performance_map, IMAGE_DIRECTORY / "input_points.png")
+    plot_irregular_data(points, performance_map, IMAGE_DIRECTORY / "irregular_data.png")
     plot_load_against_condenser_rise(points, IMAGE_DIRECTORY / "load_against_condenser_rise.png")
     plot_map_slice(points, minimum_loads, performance_map, IMAGE_DIRECTORY / "map_slice.png")
     print(f"wrote figures to {IMAGE_DIRECTORY.relative_to(EXAMPLE_DIRECTORY.parent.parent)}")

@@ -105,7 +105,7 @@ def test_points_outside_grid_are_flagged_and_excluded() -> None:
 
 def test_replicate_points_are_checked_individually() -> None:
     """Replicates at x = 1 are averaged for fitting, but the read-back is compared with each
-    original point, so the spread between them shows up as error."""
+    irregular data point, so the spread between them shows up as error."""
     table = PointTable(
         [
             Column("x", "", [0.0, 1.0, 1.0, 2.0]),

@@ -114,15 +114,15 @@ class _Regridding:
         points_outside_grid = tuple(np.flatnonzero(~in_grid).tolist())
 
         predicted_si = self._read_back(self.original_grid_data)
-        actual_si = self.original_lookup_data
+        irregular_si = self.original_lookup_data
         statistics = tuple(
-            _fit_statistics(s, predicted_si[:, index], actual_si[:, index], in_grid)
+            _fit_statistics(s, predicted_si[:, index], irregular_si[:, index], in_grid)
             for index, s in enumerate(self.lookup_specifications)
         )
 
         outside_box_mask, outside_hull_mask, hull_evaluated = self._extrapolation_zones()
         return FitReport(
-            r_squared=_r_squared(predicted_si[in_grid], actual_si[in_grid]),
+            r_squared=_r_squared(predicted_si[in_grid], irregular_si[in_grid]),
             lookup_variable_statistics=statistics,
             grid_variable_coverage=tuple(
                 GridVariableCoverage(
@@ -246,12 +246,12 @@ def _in_units(si_values: np.ndarray, units: str) -> tuple[float, ...]:
 
 
 def _fit_statistics(
-    specification: LookupVariableSpecification, predicted_si: np.ndarray, actual_si: np.ndarray, in_grid: np.ndarray
+    specification: LookupVariableSpecification, predicted_si: np.ndarray, irregular_si: np.ndarray, in_grid: np.ndarray
 ) -> LookupVariableFitStatistics:
     """Residuals for every input point (NaN outside the grid); statistics over the in-grid points."""
     predicted = np.array(_in_units(predicted_si, specification.units))
-    actual = np.array(_in_units(actual_si, specification.units))
-    residuals = np.where(in_grid, predicted - actual, np.nan)
+    irregular = np.array(_in_units(irregular_si, specification.units))
+    residuals = np.where(in_grid, predicted - irregular, np.nan)
     in_grid_residuals = residuals[in_grid]
     if len(in_grid_residuals) == 0:
         return LookupVariableFitStatistics(
@@ -267,14 +267,14 @@ def _fit_statistics(
     )
 
 
-def _r_squared(predicted_si: np.ndarray, actual_si: np.ndarray) -> float:
+def _r_squared(predicted_si: np.ndarray, irregular_si: np.ndarray) -> float:
     """Coefficient of determination on residual Euclidean distance in normalized lookup space."""
-    if len(actual_si) == 0:
+    if len(irregular_si) == 0:
         return float("nan")
-    scales = actual_si.max(axis=0) - actual_si.min(axis=0)
+    scales = irregular_si.max(axis=0) - irregular_si.min(axis=0)
     scales[scales == 0.0] = 1.0
-    residual_sum_of_squares = float((((predicted_si - actual_si) / scales) ** 2).sum())
-    total_sum_of_squares = float((((actual_si - actual_si.mean(axis=0)) / scales) ** 2).sum())
+    residual_sum_of_squares = float((((predicted_si - irregular_si) / scales) ** 2).sum())
+    total_sum_of_squares = float((((irregular_si - irregular_si.mean(axis=0)) / scales) ** 2).sum())
     if total_sum_of_squares == 0.0:
         return 1.0 if residual_sum_of_squares < _NEGLIGIBLE_SUM_OF_SQUARES else 0.0
     return 1.0 - residual_sum_of_squares / total_sum_of_squares
