@@ -63,18 +63,18 @@ conditions, and one row for each load step within the run.
 
 ## Percent load to compressor sequence number
 
-The map does not use percent load. It uses a compressor sequence number, which counts the
-load steps from 1 at the lowest load measured at a given flow. Since each run has its own
-condenser flow, sequence 1 is that run's minimum load. It is 20 % load at the three lowest
-setpoints and 30 % at the two highest:
+The map does not use percent load. It uses a compressor sequence number, which scales load
+linearly from 1 at the lowest load measured at a given flow to 4 at full load. Since each
+run has its own condenser flow, sequence 1 is that run's minimum load. It is 20 % load at
+the three lowest setpoints and 30 % at the two highest:
 
 ```
-sequence number = round((load − minimum load at this flow) / 10 %) + 1
+sequence number = 1 + 3 × (load − minimum load at this flow) / (100 % − minimum load at this flow)
 ```
 
-Rounding places each point on its nearest step. A skipped step, such as the 90 % step in
-the 65 °F condenser water runs, leaves its number unused rather than renumbering the steps
-above it.
+The sequence number is not rounded, so a point between two whole numbers (for example 2.5)
+keeps its exact load. The grid axis holds the four whole numbers 1, 2, 3, and 4, and the map
+interpolates between them.
 
 A transformation sees one irregular data point at a time, so the script first collects the
 lowest load at each condenser flow (`minimum_load_by_flow`). The sequence number
@@ -114,10 +114,10 @@ data point, with its values already in SI, and returns the variable's value.
 
 ## The map
 
-The result is a 3 × 5 × 3 × 5 × 9 grid of 2,025 nodes. Read back at the irregular data
+The result is a 3 × 5 × 3 × 5 × 4 grid of 900 nodes. Read back at the irregular data
 points, it reproduces them with R² ≈ 0.998.
 
-Only 23 nodes fall inside the convex hull of the data, which is the smallest region
+Only 10 nodes fall inside the convex hull of the data, which is the smallest region
 enclosing every point. There are two reasons:
 - The two flows are set by each run's full-load capacity, so they move together with the
   chilled water setpoint and the condenser temperature instead of varying on their own.

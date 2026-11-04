@@ -51,8 +51,8 @@ PERCENT_LOAD = "percent load"
 POWER = "power"
 CAPACITY = "capacity"
 
-# The load steps the chiller was run at, as a fraction of full capacity.
-LOAD_STEP = 0.1
+# Compressor sequence numbers run from 1 at a flow's minimum load to this value at full load.
+HIGHEST_SEQUENCE_NUMBER = 4
 
 # Condenser flows (gpm) are matched to one decimal place, the precision of the input file.
 FLOW_DECIMALS = 1
@@ -63,18 +63,19 @@ WATER_VOLUMETRIC_HEAT_CAPACITY = 997.0 * 4181.0
 # The plotted map slice: grid indices of chilled water flow, chilled water leaving temperature,
 # and condenser water flow, and the compressor sequence numbers drawn.
 SLICE_INDICES = (1, 2, 1)
-SLICE_SEQUENCE_NUMBERS = (1, 5, 9)
+SLICE_SEQUENCE_NUMBERS = (1, 2, 3, 4)
 
 # How close an irregular data point must be to the plotted map slice to be drawn beside it.
 NEAR_SLICE_FLOW_FRACTION = 0.05
 NEAR_SLICE_TEMPERATURE_DIFFERENCE = 1.5  # degF
+NEAR_SLICE_SEQUENCE_DIFFERENCE = 0.2
 
 # Chart styling.
 SURFACE = "#fcfcfb"
 TEXT_PRIMARY = "#0b0b0b"
 TEXT_SECONDARY = "#52514e"
 GRID_LINE = "#d6d5d0"
-SERIES = ["#2a78d6", "#eb6834", "#1baf7a"]
+SERIES = ["#2a78d6", "#eb6834", "#1baf7a", "#8a5cd1"]
 SEQUENTIAL = LinearSegmentedColormap.from_list("blue", ["#86b6ef", "#3987e5", "#1c5cab", "#0d366b"])
 
 
@@ -97,16 +98,19 @@ def minimum_load_by_flow(points: PointTable) -> dict[float, float]:
     return minimum_loads
 
 
-def compressor_sequence_number(load_fraction: float, minimum_load_fraction: float) -> int:
-    """Number the load steps from 1 at the lowest load measured at the point's flow, rounding
-    each point to its nearest step."""
-    return round((load_fraction - minimum_load_fraction) / LOAD_STEP) + 1
+def compressor_sequence_number(load_fraction: float, minimum_load_fraction: float) -> float:
+    """Scale load linearly from 1 at the lowest load measured at the point's flow to
+    ``HIGHEST_SEQUENCE_NUMBER`` at full load. A flow measured only at full load gets the
+    highest sequence number."""
+    if minimum_load_fraction >= 1.0:
+        return float(HIGHEST_SEQUENCE_NUMBER)
+    return 1.0 + (HIGHEST_SEQUENCE_NUMBER - 1) * (load_fraction - minimum_load_fraction) / (1.0 - minimum_load_fraction)
 
 
 def grid_variables(minimum_loads: dict[float, float]) -> list[GridVariableSpecification]:
     """Five grid variables. The flow and temperature axes are evenly spaced, stated in
-    inch-pound units through ``axis_units`` and stored in SI; the sequence number axis takes
-    the values found in the data.
+    inch-pound units through ``axis_units`` and stored in SI; the sequence number axis holds
+    the whole numbers from 1 to ``HIGHEST_SEQUENCE_NUMBER``.
     """
     return [
         GridVariableSpecification(
@@ -147,6 +151,7 @@ def grid_variables(minimum_loads: dict[float, float]) -> list[GridVariableSpecif
             transformation=lambda point: compressor_sequence_number(
                 point[PERCENT_LOAD], minimum_loads[flow_key(to_u(point[CONDENSER_WATER_FLOW], "gpm"))]
             ),
+            values=tuple(float(number) for number in range(1, HIGHEST_SEQUENCE_NUMBER + 1)),
         ),
     ]
 
@@ -299,14 +304,14 @@ def plot_load_against_condenser_rise(points: PointTable, path: Path) -> None:
 def plot_map_slice(
     points: PointTable, minimum_loads: dict[float, float], performance_map: PerformanceMap, path: Path
 ) -> None:
-    """Plot input power along the condenser temperature axis of the map, for three sequence numbers,
+    """Plot net evaporator capacity along the condenser temperature axis of the map, for three sequence numbers,
     with the irregular data points nearest that slice for comparison.
     """
     evaporator_flow_index, evaporator_temperature_index, condenser_flow_index = SLICE_INDICES
     grid = performance_map.grid_variables
-    power = np.array(performance_map.lookup_variables[0].values).reshape(performance_map.grid_shape)
+    capacity = np.array(performance_map.lookup_variables[1].values).reshape(performance_map.grid_shape)
 
-    # Compare in the input file's units: gpm, degrees Fahrenheit, and kW.
+    # Select nearby points in the input file's units: gpm and degrees Fahrenheit.
     slice_evaporator_flow = to_u(grid[0].values[evaporator_flow_index], "gpm")
     slice_evaporator_temperature = to_u(grid[1].values[evaporator_temperature_index], "degF")
     slice_condenser_flow = to_u(grid[2].values[condenser_flow_index], "gpm")
@@ -325,18 +330,18 @@ def plot_map_slice(
         ]
     )
     point_condenser_temperature = fr_u(column_values(points, CONDENSER_WATER_ENTERING_TEMPERATURE), "degF")
-    point_power = column_values(points, POWER)
+    point_capacity = fr_u(column_values(points, CAPACITY), "ton_ref") / 1000.0
 
     figure, axes = plt.subplots(figsize=(7.5, 5), facecolor=SURFACE)
     condenser_temperatures = np.array(grid[3].values)
     for color, sequence_number in zip(SERIES, SLICE_SEQUENCE_NUMBERS):
         sequence_index = grid[4].values.index(sequence_number)
-        slice_power = power[
+        slice_capacity = capacity[
             evaporator_flow_index, evaporator_temperature_index, condenser_flow_index, :, sequence_index
         ]
         axes.plot(
             condenser_temperatures,
-            slice_power / 1000.0,
+            slice_capacity / 1000.0,
             color=color,
             linewidth=2,
             marker="o",
@@ -347,16 +352,16 @@ def plot_map_slice(
         )
         axes.annotate(
             f"sequence {sequence_number}",
-            (condenser_temperatures[-1], slice_power[-1] / 1000.0),
+            (condenser_temperatures[-1], slice_capacity[-1] / 1000.0),
             xytext=(8, 0),
             textcoords="offset points",
             va="center",
             color=TEXT_SECONDARY,
         )
-        selected = near_slice & (point_sequence == sequence_number)
+        selected = near_slice & (np.abs(point_sequence - sequence_number) < NEAR_SLICE_SEQUENCE_DIFFERENCE)
         axes.scatter(
             point_condenser_temperature[selected],
-            point_power[selected],
+            point_capacity[selected],
             facecolors=SURFACE,
             edgecolors=color,
             linewidths=2,
@@ -375,7 +380,7 @@ def plot_map_slice(
         label="nearby irregular data",
     )
     axes.margins(x=0.12)
-    axes.legend(frameon=False, labelcolor=TEXT_SECONDARY, loc="upper left")
+    axes.legend(frameon=False, labelcolor=TEXT_SECONDARY, loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=3)
     slice_note = (
         f"evaporator {grid[0].values[evaporator_flow_index]:.4f} m³/s leaving at "
         f"{grid[1].values[evaporator_temperature_index]:.2f} K; "
@@ -385,7 +390,7 @@ def plot_map_slice(
         axes,
         f"One slice of the SI map\n{slice_note}",
         "condenser_liquid_entering_temperature (K)",
-        "input_power (kW)",
+        "net_evaporator_capacity (kW)",
     )
     figure.tight_layout()
     figure.savefig(path, dpi=150)
