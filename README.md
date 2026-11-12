@@ -62,7 +62,8 @@ Key behaviors:
 - **The fit report** (optional, scipy-style tuple return) measures how well the grid
   reproduces the original points under multilinear read-back, and classifies grid points
   by extrapolation risk (inside the data's convex hull, gap-filling inside the bounding
-  box, or pure extrapolation).
+  box, or pure extrapolation). The [chiller example](examples/chiller/README.md#when-the-data-does-not-fill-the-axes)
+  walks through a report for a map whose axes extend past the data.
 - **Import/export**: `PointTable` ⇄ CSV (standard library) and pandas DataFrames
   (optional extra: `pip install performance-mapper[pandas]`);
   `PerformanceMap.to_point_table()` flattens a map back into a table.
@@ -76,7 +77,7 @@ directory with its data, script, figures, and README.
 |---------|-------------|
 | [chiller](examples/chiller/README.md) | Translates irregular inch-pound chiller operating data, with percent load, into a regular map in SI units with compressor sequence numbers. |
 
-The examples' plotting dependency is in the `examples` dependency group, so it is not
+The examples' plotting dependencies are in the `examples` dependency group, so it is not
 installed with the core package. Run an example from the repository root:
 
 ```

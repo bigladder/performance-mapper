@@ -10,13 +10,15 @@ expressed as a compressor sequence number.
 | `chiller_irregular_data.csv` | The input: 102 irregular data points in inch-pound units. |
 | `translate_to_regular_map.py` | Builds the map, prints a fit summary and a heat-balance check, and draws the figures below. |
 | `chiller_map_si.csv` | The output: the regular SI map, one row per grid node. |
+| `hull_versus_box.py` | Builds a three-axis map with a widened condenser axis, prints its fit report, and draws which grid nodes the data supports. |
 | `images/` | The figures, written by the script. |
 
-Run both scripts from the repository root:
+Run the scripts from the repository root:
 
 ```
 uv run --group examples python examples/chiller/generate_irregular_data.py
 uv run --group examples python examples/chiller/translate_to_regular_map.py
+uv run --group examples python examples/chiller/hull_versus_box.py
 ```
 
 ## The input
@@ -128,3 +130,64 @@ Everywhere else, the map's values are extrapolated from the data. The script pri
 counts so you can judge how much of the map the data supports.
 
 ![One slice of the SI map](images/map_slice.png)
+
+## When the data does not fill the axes
+
+A performance map often has to cover conditions that the irregular data never reached. For
+example, the selection runs above never send condenser water colder than 65 °F, but a chiller
+may well see 55 °F water on a cool night. The fit report (requested with `fit_report=True`)
+says how much of the grid the data supports, so you can judge which values to trust.
+
+`hull_versus_box.py` shows this on a smaller map with three grid variables: chilled water
+leaving temperature (five values, 42 °F to 62 °F), condenser water entering temperature
+(seven values, widened to run from 55 °F to 85 °F in 5 °F steps), and compressor sequence
+number (1 to 4). The grid has 5 × 7 × 4 = 140 nodes. With three axes the map can be drawn in
+three dimensions, and the flow axes, which move together with the other variables, are left
+out.
+
+![Grid nodes of the three-axis map by extrapolation zone](images/hull_versus_box.png)
+
+The script also writes [a rotatable version of this figure](images/hull_versus_box.html).
+Download it and open it in a browser; it loads the plotly library from the web.
+
+The fit report sorts every grid node into one of three extrapolation zones:
+
+| Zone | Nodes | What a node's value is |
+|------|-------|------------------------|
+| Inside the convex hull of the data | 46 | Interpolated between data points that surround it. |
+| Inside the bounding box, outside the hull (`grid_points_outside_convex_hull`) | 54 | Gap-filling: each coordinate is within the data's range, but this combination of coordinates was never measured. |
+| Outside the bounding box (`grid_points_outside_bounding_box`) | 40 | Pure extrapolation: at least one coordinate is beyond the data's range on its axis. |
+
+The bounding box is the range of the data along each axis taken separately, and the convex
+hull is the smallest region enclosing every point. The hull always lies inside the box. Here
+the hull is a sloped wedge: condenser relief means the lowest sequence numbers were measured
+only with 65 °F condenser water, so the box's corner of low sequence numbers and warm
+condenser water is outside the hull. The two columns of nodes at 55 °F and 60 °F condenser
+water are outside the box altogether.
+
+The other fields of the report:
+
+- `grid_points_outside_convex_hull` and `grid_points_outside_bounding_box` hold the nodes'
+  positions in the flattened grid, in the same row-major order as the lookup values, with
+  the last grid variable varying fastest. The nodes inside the hull are the ones in neither
+  list.
+- `grid_variable_coverage` lists each axis's minimum and maximum next to the data's. The
+  condenser water entering temperature axis starts at 285.9 K (55 °F) while the data starts
+  at 291.5 K (65 °F); the other two axes match the data exactly. An axis that extends past
+  the data is what puts nodes outside the bounding box.
+- `points_outside_grid` lists the irregular data points that fall beyond an axis's range,
+  which is the opposite situation: an axis narrower than the data. There are none here.
+  Such points are left out of the error statistics.
+- `convex_hull_evaluated` is false when the hull cannot be built, which happens when the data
+  lies on a lower-dimensional surface within the grid, for example when one grid variable is
+  a fixed function of the others. Then no node is reported outside the hull, and only the
+  bounding box test applies.
+- `r_squared` and the per-variable statistics (root-mean-square, largest, and mean error)
+  compare the map, read back at the irregular data points, with the data. They measure
+  whether the grid is fine enough to reproduce the data, so they say nothing about nodes
+  away from the data. This map reproduces the data with R² ≈ 0.997, close to the full
+  map's 0.998, even though 94 of its 140 nodes are gap-filled or extrapolated.
+
+The full five-axis map above is in a worse position for the reasons given there: only 10 of
+its 900 nodes are inside the hull, and the other 890 are gap-filled, although none is
+outside the bounding box.

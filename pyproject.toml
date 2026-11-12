@@ -26,6 +26,7 @@ dev = [
 ]
 examples = [
     "matplotlib>=3.8",
+    "plotly>=7.1.0",
 ]
 
 [tool.ruff]
@@ -60,6 +61,10 @@ disable_error_code = ["annotation-unchecked","import"]
 
 [[tool.mypy.overrides]]
 module = "koozie"
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["plotly.*", "mpl_toolkits.*", "scipy.*"]
 ignore_missing_imports = true
 
 [build-system]
