@@ -379,6 +379,7 @@ def plot_map_slice(
         marker="D",
         label="nearby irregular data",
     )
+    axes.set_ylim(bottom=0)
     axes.margins(x=0.12)
     axes.legend(frameon=False, labelcolor=TEXT_SECONDARY, loc="upper center", bbox_to_anchor=(0.5, -0.14), ncol=3)
     slice_note = (
