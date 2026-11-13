@@ -3,7 +3,7 @@ name = "performance_mapper"
 version = "0.1.0"
 description = "Utilities for working with performance maps: translate sparse or scattered performance points onto regular grids"
 license = { file = "LICENSE.txt" }
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 readme = "README.md"
 dependencies = [
     "koozie>=1.3.0",
@@ -23,6 +23,9 @@ dev = [
     "pre-commit",
     "mypy",
     "twine>=6.1.0",
+]
+examples = [
+    "matplotlib>=3.8",
 ]
 
 [tool.ruff]
@@ -70,5 +73,6 @@ packages = ["performance_mapper"] # see also: 'only-include' https://hatch.pypa.
 # "path-to-extra-resource-files" = "path-in-distribution-package"
 
 [tool.uv]
+
 [tool.uv.sources]
 

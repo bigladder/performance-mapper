@@ -4,6 +4,7 @@ import pytest
 
 from performance_mapper import (
     Column,
+    DuplicatePointsWarning,
     GridVariableSpecification,
     LookupVariableSpecification,
     PointTable,
@@ -49,7 +50,7 @@ def test_coarse_grid_reports_discretization_error() -> None:
     assert statistics.root_mean_squared_error == pytest.approx(math.sqrt(2.0 / 5.0), rel=1e-6)
     assert statistics.maximum_absolute_error == pytest.approx(1.0, rel=1e-6)
     assert 0.0 < report.r_squared < 1.0
-    assert len(statistics.residuals) == 5
+    assert len(statistics.residuals) == 5  # noqa PLR2004
 
 
 def test_extrapolation_zones() -> None:
@@ -97,4 +98,27 @@ def test_points_outside_grid_are_flagged_and_excluded() -> None:
         fit_report=True,
     )
     assert report.points_outside_grid == (3,)
-    assert len(report.lookup_variable_statistics[0].residuals) == 3
+    residuals = report.lookup_variable_statistics[0].residuals
+    assert len(residuals) == 4  # noqa PLR2004
+    assert math.isnan(residuals[3])
+
+
+def test_replicate_points_are_checked_individually() -> None:
+    """Replicates at x = 1 are averaged for fitting, but the read-back is compared with each
+    irregular data point, so the spread between them shows up as error."""
+    table = PointTable(
+        [
+            Column("x", "", [0.0, 1.0, 1.0, 2.0]),
+            Column("y", "", [0.0, 0.0, 2.0, 2.0]),
+        ]
+    )
+    with pytest.warns(DuplicatePointsWarning):
+        _, report = table.to_performance_map(
+            grid_variables=[GridVariableSpecification("x")],
+            lookup_variables=[LookupVariableSpecification("y")],
+            fit_report=True,
+        )
+    statistics = report.lookup_variable_statistics[0]
+    assert statistics.residuals == pytest.approx((0.0, 1.0, -1.0, 0.0), abs=1e-9)
+    assert statistics.maximum_absolute_error == pytest.approx(1.0, rel=1e-6)
+    assert report.r_squared < 1.0

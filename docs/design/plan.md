@@ -1,13 +1,12 @@
 # performance-mapper — Design
 
 A Python package (PyPI: `performance-mapper`, import: `performance_mapper`) of utilities for
-working with performance maps as structured by ASHRAE Standard 205 (and the forthcoming
-Standard 232). The package is agnostic to what a map describes (HVAC equipment or otherwise);
+working with performance maps. The package is agnostic to what a map describes (HVAC equipment or otherwise);
 it is specific to the grid-variable/lookup-variable structure. The initial feature is
 translating sparse or unstructured performance points into a regular grid. Visualization and
 other utilities come later.
 
-Domain vocabulary lives in [CONTEXT.md](CONTEXT.md).
+Domain vocabulary lives in [CONTEXT.md](../CONTEXT.md).
 
 ## Data model
 
@@ -18,9 +17,8 @@ Domain vocabulary lives in [CONTEXT.md](CONTEXT.md).
 - **`PerformanceMap`** — the output: `grid_variables` (each with `name`, `units`, and its
   axis values) and `lookup_variables` (each with `name`, `units`, and a flattened value
   list of length ∏(axis lengths), **row-major with the last grid variable varying
-  fastest**, matching the 205 array convention). Values are stored in their declared
-  units; units are metadata carried by this package (205 representations fix units in the
-  schema, so exporters — not the map — reconcile them).
+  fastest**). Values are stored in their declared
+  units; units are metadata carried by this package.
 - A future utility will convert row-oriented data (`list[dict]`) into a `PointTable`.
 
 ## Public API
@@ -91,9 +89,8 @@ legitimate unit for dimensionless-but-united data.
   data points and requested grid) before fitting — non-optional; SI-mixed magnitudes
   (kelvin next to m³/s) would otherwise blind the kernel along small axes.
 - All grid variables are continuous coordinates in v1 — no discrete/categorical axes.
-  Data at one "compressor sequence number" influences fitted surfaces at neighboring
-  numbers (documented caveat; acceptable because sequence numbers do not always represent
-  distinct speeds).
+  Data at one value of an integer-valued axis influences fitted surfaces at neighboring
+  values (documented caveat).
 
 ## Validation & repair
 
@@ -110,10 +107,10 @@ use case. Exposure is made visible in the fit report instead (see below).
 
 ## Fit report (optional)
 
-`fit_report=True` evaluates how well the *regular grid* reproduces the original points the
-way a downstream consumer will read it: each original point is located in grid space (same
+`fit_report=True` evaluates how well the *regular grid* reproduces the irregular data the
+way a downstream consumer will read it: each irregular data point is located in grid space (same
 transformations), the grid is read back by **multilinear interpolation**
-(`scipy.interpolate.RegularGridInterpolator`), and predictions are compared to actuals.
+(`scipy.interpolate.RegularGridInterpolator`), and predictions are compared to the irregular data.
 With `smoothing=0` the RBF surface is exact at data points, so this measures
 **discretization error** — "is my grid resolution good enough?"
 
@@ -124,7 +121,7 @@ Contents:
   over in-grid points.
 - Per-lookup-variable statistics in declared units: RMSE, max |error|, mean bias — plus
   raw per-point residuals for debugging.
-- Original points outside the grid's axis ranges: excluded from statistics, listed.
+- Irregular data points outside the grid's axis ranges: excluded from statistics, listed.
 - **Extrapolation zones** for grid points, by rising risk: inside the data's convex hull
   (true interpolation); outside the hull but inside the bounding box (gap-filling);
   outside the bounding box (pure extrapolation). Hull membership via Delaunay
@@ -161,9 +158,9 @@ The `to_*`/`from_*` conversion family:
 
 Input columns: inlet temperature (°F), capacity (kBtu/h), outlet temperature (°F).
 Requested map: grid of inlet temperature (K) × flow rate (m³/s) — flow rate derived from
-capacity and ΔT via a transformation — with capacity (W) as the lookup variable. The
-chiller study's "Percent load" → "compressor sequence number" step-function transformation
-is the same mechanism producing a (continuous) grid axis.
+capacity and ΔT via a transformation — with capacity (W) as the lookup variable. A
+step-function transformation (for example, a percentage rounded to an integer index) is the
+same mechanism producing a (continuous) grid axis.
 
 ## Future features (explicitly deferred)
 
@@ -173,4 +170,3 @@ is the same mechanism producing a (continuous) grid axis.
   axis values; `step`-based spacing.
 - Discrete/per-slice grid variables; per-lookup missing-value masks.
 - Additional interpolation methods; per-axis scale weights.
-- 205/232-aware adapters (schema-fixed units, RS-specific structures).

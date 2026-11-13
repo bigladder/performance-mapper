@@ -9,9 +9,10 @@ from dataclasses import dataclass
 class LookupVariableFitStatistics:
     """Read-back error statistics for one lookup variable, in its declared units.
 
-    Residuals are (grid read back by multilinear interpolation) minus (actual derived
-    value), one per in-grid performance point, in the order the points survived
-    duplicate averaging.
+    Residuals are (grid read back by multilinear interpolation) minus (irregular data
+    value), one per irregular data point in input order, each compared with that point's
+    own value even when duplicate points were averaged for fitting. Points outside the
+    grid's axis ranges have NaN residuals and are excluded from the statistics.
     """
 
     name: str
@@ -36,15 +37,15 @@ class GridVariableCoverage:
 
 @dataclass(frozen=True)
 class FitReport:
-    """How well the regular grid reproduces the original points when read back the way a
+    """How well the regular grid reproduces the irregular data when read back the way a
     consumer reads it (multilinear interpolation). With exact interpolation this measures
     discretization error: whether the grid resolution is adequate.
 
     Grid points are classified into extrapolation zones by rising risk: inside the data's
     convex hull (interpolation), outside the hull but inside the bounding box
     (gap-filling), and outside the bounding box (pure extrapolation). Indices into the
-    grid are flat row-major indices; indices into the point table refer to the original
-    input points.
+    grid are flat row-major indices; indices into the point table refer to the irregular
+    data points in input order.
     """
 
     r_squared: float

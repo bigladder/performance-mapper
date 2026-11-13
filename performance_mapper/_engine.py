@@ -65,7 +65,8 @@ class _Regridding:
         si_points = _to_si_points(point_table)
         grid_data = np.column_stack([_derive(s, si_points) for s in grid_specifications])
         lookup_data = np.column_stack([_derive(s, si_points) for s in lookup_specifications])
-        self.grid_data, self.lookup_data, self.original_indices = _average_duplicates(grid_data, lookup_data)
+        self.original_grid_data, self.original_lookup_data = grid_data, lookup_data
+        self.grid_data, self.lookup_data = _average_duplicates(grid_data, lookup_data)
 
         self.axes_si = [
             _axis_si(specification, self.grid_data[:, dimension])
@@ -106,22 +107,22 @@ class _Regridding:
 
     def build_fit_report(self, performance_map: PerformanceMap) -> FitReport:
         assert self.grid_values is not None
-        in_grid = np.ones(len(self.grid_data), dtype=bool)
+        in_grid = np.ones(len(self.original_grid_data), dtype=bool)
         for dimension, axis in enumerate(self.axes_si):
-            coordinates = self.grid_data[:, dimension]
+            coordinates = self.original_grid_data[:, dimension]
             in_grid &= (coordinates >= axis.min()) & (coordinates <= axis.max())
-        points_outside_grid = tuple(self.original_indices[i] for i in np.flatnonzero(~in_grid))
+        points_outside_grid = tuple(np.flatnonzero(~in_grid).tolist())
 
-        predicted_si = self._read_back(self.grid_data[in_grid])
-        actual_si = self.lookup_data[in_grid]
+        predicted_si = self._read_back(self.original_grid_data)
+        irregular_si = self.original_lookup_data
         statistics = tuple(
-            _fit_statistics(s, predicted_si[:, index], actual_si[:, index])
+            _fit_statistics(s, predicted_si[:, index], irregular_si[:, index], in_grid)
             for index, s in enumerate(self.lookup_specifications)
         )
 
         outside_box_mask, outside_hull_mask, hull_evaluated = self._extrapolation_zones()
         return FitReport(
-            r_squared=_r_squared(predicted_si, actual_si),
+            r_squared=_r_squared(predicted_si[in_grid], irregular_si[in_grid]),
             lookup_variable_statistics=statistics,
             grid_variable_coverage=tuple(
                 GridVariableCoverage(
@@ -209,12 +210,12 @@ def _validate_specifications(point_table: "PointTable", specifications: list[Loo
                 )
 
 
-def _average_duplicates(grid_data: np.ndarray, lookup_data: np.ndarray) -> tuple[np.ndarray, np.ndarray, list[int]]:
+def _average_duplicates(grid_data: np.ndarray, lookup_data: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
     groups: dict[tuple[float, ...], list[int]] = {}
     for index, row in enumerate(grid_data):
         groups.setdefault(tuple(row), []).append(index)
     if len(groups) == len(grid_data):
-        return grid_data, lookup_data, list(range(len(grid_data)))
+        return grid_data, lookup_data
     duplicate_groups = [indices for indices in groups.values() if len(indices) > 1]
     warnings.warn(
         "Points sharing identical grid coordinates were averaged: "
@@ -222,10 +223,9 @@ def _average_duplicates(grid_data: np.ndarray, lookup_data: np.ndarray) -> tuple
         DuplicatePointsWarning,
         stacklevel=4,
     )
-    representatives = [indices[0] for indices in groups.values()]
     averaged_grid = np.array([grid_data[indices[0]] for indices in groups.values()])
     averaged_lookups = np.array([lookup_data[indices].mean(axis=0) for indices in groups.values()])
-    return averaged_grid, averaged_lookups, representatives
+    return averaged_grid, averaged_lookups
 
 
 def _axis_si(specification: GridVariableSpecification, derived_values: np.ndarray) -> np.ndarray:
@@ -246,33 +246,35 @@ def _in_units(si_values: np.ndarray, units: str) -> tuple[float, ...]:
 
 
 def _fit_statistics(
-    specification: LookupVariableSpecification, predicted_si: np.ndarray, actual_si: np.ndarray
+    specification: LookupVariableSpecification, predicted_si: np.ndarray, irregular_si: np.ndarray, in_grid: np.ndarray
 ) -> LookupVariableFitStatistics:
+    """Residuals for every input point (NaN outside the grid); statistics over the in-grid points."""
     predicted = np.array(_in_units(predicted_si, specification.units))
-    actual = np.array(_in_units(actual_si, specification.units))
-    residuals = predicted - actual
-    if len(residuals) == 0:
+    irregular = np.array(_in_units(irregular_si, specification.units))
+    residuals = np.where(in_grid, predicted - irregular, np.nan)
+    in_grid_residuals = residuals[in_grid]
+    if len(in_grid_residuals) == 0:
         return LookupVariableFitStatistics(
-            specification.name, specification.units, float("nan"), float("nan"), float("nan"), ()
+            specification.name, specification.units, float("nan"), float("nan"), float("nan"), tuple(residuals.tolist())
         )
     return LookupVariableFitStatistics(
         name=specification.name,
         units=specification.units,
-        root_mean_squared_error=float(np.sqrt(np.mean(residuals**2))),
-        maximum_absolute_error=float(np.max(np.abs(residuals))),
-        mean_bias_error=float(np.mean(residuals)),
+        root_mean_squared_error=float(np.sqrt(np.mean(in_grid_residuals**2))),
+        maximum_absolute_error=float(np.max(np.abs(in_grid_residuals))),
+        mean_bias_error=float(np.mean(in_grid_residuals)),
         residuals=tuple(residuals.tolist()),
     )
 
 
-def _r_squared(predicted_si: np.ndarray, actual_si: np.ndarray) -> float:
+def _r_squared(predicted_si: np.ndarray, irregular_si: np.ndarray) -> float:
     """Coefficient of determination on residual Euclidean distance in normalized lookup space."""
-    if len(actual_si) == 0:
+    if len(irregular_si) == 0:
         return float("nan")
-    scales = actual_si.max(axis=0) - actual_si.min(axis=0)
+    scales = irregular_si.max(axis=0) - irregular_si.min(axis=0)
     scales[scales == 0.0] = 1.0
-    residual_sum_of_squares = float((((predicted_si - actual_si) / scales) ** 2).sum())
-    total_sum_of_squares = float((((actual_si - actual_si.mean(axis=0)) / scales) ** 2).sum())
+    residual_sum_of_squares = float((((predicted_si - irregular_si) / scales) ** 2).sum())
+    total_sum_of_squares = float((((irregular_si - irregular_si.mean(axis=0)) / scales) ** 2).sum())
     if total_sum_of_squares == 0.0:
         return 1.0 if residual_sum_of_squares < _NEGLIGIBLE_SUM_OF_SQUARES else 0.0
     return 1.0 - residual_sum_of_squares / total_sum_of_squares
