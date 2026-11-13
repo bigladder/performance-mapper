@@ -1,0 +1,23 @@
+# performance-mapper documentation
+
+Utilities for working with performance maps: a set of **grid variables** whose values define a
+regular grid, and **lookup variables** with one value at every grid point.
+
+This directory holds the project's prose documentation. It is currently a set of
+Markdown pages; a documentation generator (mkdocs or sphinx) has not yet been wired up
+(see the TODO markers in [`.gitignore`](../.gitignore)).
+
+## Contents
+
+- [Usage and key behaviors](../README.md) — installation, a worked example, and the
+  units/transformation/grid-axis conventions.
+- [Design and rationale](design/plan.md) — the full design of the point-table-to-performance-map
+  translation.
+- [Domain vocabulary](CONTEXT.md) — definitions of the grid-variable and
+  lookup-variable terminology.
+
+## Package reference
+
+The importable package is `performance_mapper`, in the `performance_mapper/` directory at
+the repository root. Its public interface is re-exported from the package's top-level `__init__` module; see
+that module's `__all__` for the complete list of exported names.
