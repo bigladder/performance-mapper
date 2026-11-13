@@ -150,6 +150,23 @@ out.
 The script also writes [a rotatable version of this figure](images/hull_versus_box.html).
 Download it and open it in a browser; it loads the plotly library from the web.
 
+The script prints:
+
+```
+three-axis map: 5 x 7 x 4 grid (140 nodes)
+  inside the convex hull: 46
+  inside the bounding box only: 54
+  outside the bounding box: 40
+convex hull evaluated: True
+axis coverage (axis range | data range):
+  evaporator_liquid_leaving_temperature (K): 278.706 to 289.817 | 278.706 to 289.817
+  condenser_liquid_entering_temperature (K): 285.928 to 302.594 | 291.483 to 302.594
+  compressor_sequence_number (dimensionless): 1 to 4 | 1 to 4
+irregular data points outside the grid's range: 0
+read-back R^2: 0.9970
+wrote hull_versus_box.html and hull_versus_box.png to examples/chiller/images
+```
+
 The fit report sorts every grid node into one of three extrapolation zones:
 
 | Zone | Nodes | What a node's value is |
